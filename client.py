@@ -1,6 +1,9 @@
 import requests
 import os
 import json
+import pprint
+import random
+import datetime
 
 def pretty(json_data):
     return json.dumps(json_data, ensure_ascii = False, indent = 2)
@@ -8,46 +11,104 @@ def pretty(json_data):
 def prettyprint(json_data):
     print(pretty(json_data))
 
-BASE_URL = 'https://api.hh.ru/'
-params = {'text': 'Python', 'search_field': ['name', 'description']}
+def get_hh_values(num_pages, text = 'Python'):
 
-#Suggested names for vacancies search
-##'id': '1.221', 'name': 'Программирование, Разработка', 'laboring': False
-""" request = requests.get(
-    os.path.join(BASE_URL, 'suggests/vacancy_search_keyword'), params = params) """
+    BASE_URL = 'https://api.hh.ru/'
+    params = {
+        'text': text,
+        'search_field': ['name', 'description']
+        }
 
-""" request = requests.get(
-    os.path.join(BASE_URL, 'specializations')) """
+    page = 0
+    employer_dict = {}
+    area_dict = {}
+    vacancy_dict = {}
+    applicant = []
+    resume = []
 
-#request = requests.get(os.path.join(BASE_URL, 'dictionaries'))
+    names_request = requests.get('http://names.drycodes.com/200?nameOptions=presidents')
+    names_list = names_request.json()
+    count = 0
 
-necessary_fields = ['salary', 'name', 'area', 'employer', 'created_at']
-# if salary != null  ['salary.from', 'salary.to', 'salary.gross']
-# if area != null 'area.name'
-# if employer != null 'employer.name'
+    while page < num_pages:
+        
+        #Request part
+        params['page'] = page
+        request = requests.get(os.path.join(BASE_URL, 'vacancies'), params = params)
+        _json = request.json()
+        
 
-# randomly generate response_counter
-# randomly generate first_response_at
-#ORDER BY multiple times LIMIT = 5
+        #In case num_pages is greater, then available number of pages
+        if int(_json.get('pages')) == page: break
+
+        page = int(_json.get('page')) + 1
+
+        #Looping through vacancies and saving neccessary info in dict
+        vacancies = _json.get('items')
+        for index, vacancy in enumerate(vacancies):
+
+            employer = vacancy.get('employer')
+            area = vacancy.get('area')
+            created_at = vacancy.get('created_at')
+            salary = vacancy.get('salary')
+
+            #Creating random first response date
+            first_response_at = (
+                datetime.datetime.strptime(created_at, '%Y-%m-%dT%H:%M:%S%z') +
+                datetime.timedelta(hours = random.randrange(500))
+            ).strftime('%Y-%m-%dT%H:%M:%S')
+
+            #Creating new entries in employer and area dicts
+            if employer.get('id'):
+                employer_dict[employer.get('id')] = (employer.get('id'), f"'{employer.get('name')}'", area.get('id'))
+                area_dict[area.get('id')] = (area.get('id'), f"'{area.get('name')}'")
+
+                if count <= len(names_list) - 1:
+                    applicant.append((str(count), f"'{names_list[count]}'", area.get('id')))
+                    count+=1
+                
+                #Working with vacancy dict
+                vacancy_dict[vacancy.get('id')] = {
+                    'vacancy_id': vacancy.get('id'),
+                    'employer_id': employer.get('id'),
+                    'position_name': f"'{vacancy.get('name')}'",
+                    'created_at': f"'{created_at}'",
+                    'responses': str(random.randint(5, 1000)),
+                    'first_response_at': f"'{first_response_at}'",
+                    'compensation_from': 'Null',
+                    'compensation_to': 'Null',
+                    'compensation_gross': 'Null',
+                }
+                if salary:
+                    vacancy_dict[vacancy.get('id')]['compensation_from'] = str(salary.get('from')) if salary.get('from') else 'Null'
+                    vacancy_dict[vacancy.get('id')]['compensation_to'] = str(salary.get('to')) if salary.get('to') else 'Null'
+                    vacancy_dict[vacancy.get('id')]['compensation_gross'] = str(salary.get('gross')) if salary.get('gross') else 'Null'
+
+        
+    #Converting to tuple
+    for index, vacancy in enumerate(vacancy_dict.keys()):
+
+        items = vacancy_dict[vacancy]
+        if index < len(names_list) - 1:
+            resume.append((str(index), str(199-index), items.get('position_name')))
+        
+        vacancy_dict[vacancy] = (
+            vacancy,
+            items.get('employer_id'),
+            items.get('position_name'),
+            items.get('compensation_from'),
+            items.get('compensation_to'),
+            items.get('compensation_gross'),
+            items.get('created_at'),
+            items.get('responses'),
+            items.get('first_response_at'))
+
+    return {
+        'employer_dict': list(employer_dict.values()),
+        'area_dict': list(area_dict.values()), 
+        'vacancy_dict': list(vacancy_dict.values()),
+        'resume_dict': resume,
+        'applicant_dict': applicant,
+    }
 
 
-vacancies_without_salary = []
-page = 0
-while len(vacancies_without_salary) < 20:
-    params['page'] = page
-    request = requests.get(os.path.join(BASE_URL, 'vacancies'), params = params)
-    _json = request.json()
-    page = int(_json.get('page')) + 1
-    print(f'Page {page}')
-    vacancies = _json.get('items')
-    for vacancy in vacancies:
-        if vacancy.get('salary'):
-            print(f'__________VACANCY {len(vacancies_without_salary)}____________')
-            vacancies_without_salary.append(vacancy)
-
-prettyprint(_json)
-
-""" prettyprint(_json.get('vacancy_search_fields'))
-prettyprint(_json.get('vacancy_label'))
-for key in _json.keys():
-    print(key) """
