@@ -1397,14 +1397,22 @@ SELECT
 FROM pretaxed_values;
 
 
+WITH response_count AS (
+    SELECT
+        v.employer_id,
+        v.position_name,
+        count(resume_id) AS responses
+    FROM homework.vacancy AS v
+    LEFT JOIN homework.vacancy_resume AS vr ON vr.vacancy_id = v.vacancy_id
+    GROUP BY v.vacancy_id
+)
 SELECT
-    e.employer_id,
-    employer_name,
-    max(responses) AS max_responses,
-    count(e.employer_id) AS employer_count     
-FROM homework.employer AS e
-LEFT JOIN homework.vacancy AS v ON v.employer_id = e.employer_id
-GROUP BY e.employer_id ORDER BY max_responses DESC, employer_name ASC LIMIT 5;
+    e.employer_name,
+    rc.position_name,
+    rc.responses
+FROM homework.employer AS e 
+LEFT JOIN response_count AS rc ON rc.employer_id = e.employer_id
+ORDER BY responses DESC, employer_name ASC LIMIT 5;
 
 WITH vac_number AS (
     SELECT
@@ -1427,3 +1435,4 @@ FROM homework.vacancy AS v
 LEFT JOIN homework.employer AS e ON v.employer_id = e.employer_id
 LEFT JOIN homework.area AS a ON e.area_id = a.area_id
 GROUP BY area_name ORDER BY area_name;
+

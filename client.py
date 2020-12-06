@@ -25,6 +25,7 @@ def get_hh_values(num_pages, text = 'Python'):
     vacancy_dict = {}
     applicant = []
     resume = []
+    vacancy_resume_list = []
 
     names_request = requests.get('http://names.drycodes.com/200?nameOptions=presidents')
     names_list = names_request.json()
@@ -52,12 +53,6 @@ def get_hh_values(num_pages, text = 'Python'):
             created_at = vacancy.get('created_at')
             salary = vacancy.get('salary')
 
-            #Creating random first response date
-            first_response_at = (
-                datetime.datetime.strptime(created_at, '%Y-%m-%dT%H:%M:%S%z') +
-                datetime.timedelta(hours = random.randrange(500))
-            ).strftime('%Y-%m-%dT%H:%M:%S')
-
             #Creating new entries in employer and area dicts
             if employer.get('id'):
                 employer_dict[employer.get('id')] = (employer.get('id'), f"'{employer.get('name')}'", area.get('id'))
@@ -72,9 +67,7 @@ def get_hh_values(num_pages, text = 'Python'):
                     'vacancy_id': vacancy.get('id'),
                     'employer_id': employer.get('id'),
                     'position_name': f"'{vacancy.get('name')}'",
-                    'created_at': f"'{created_at}'",
-                    'responses': str(random.randint(5, 1000)),
-                    'first_response_at': f"'{first_response_at}'",
+                    'created_at': created_at,
                     'compensation_from': 'Null',
                     'compensation_to': 'Null',
                     'compensation_gross': 'Null',
@@ -91,6 +84,17 @@ def get_hh_values(num_pages, text = 'Python'):
         items = vacancy_dict[vacancy]
         if index < len(names_list) - 1:
             resume.append((str(index), str(199-index), items.get('position_name')))
+
+        connections = []
+        for i in range(random.randint(5, 40)):
+            connections.append(random.randint(0, 195))
+        result = list(set(connections))
+        for connection in result:
+            created_at = (
+                datetime.datetime.strptime(items.get('created_at'), '%Y-%m-%dT%H:%M:%S%z') +
+                datetime.timedelta(hours = random.randrange(500))
+            ).strftime('%Y-%m-%dT%H:%M:%S')
+            vacancy_resume_list.append((vacancy, str(connection), f"'{created_at}'"))
         
         vacancy_dict[vacancy] = (
             vacancy,
@@ -99,9 +103,8 @@ def get_hh_values(num_pages, text = 'Python'):
             items.get('compensation_from'),
             items.get('compensation_to'),
             items.get('compensation_gross'),
-            items.get('created_at'),
-            items.get('responses'),
-            items.get('first_response_at'))
+            f"'{items.get('created_at')}'"
+        )
 
     return {
         'employer_dict': list(employer_dict.values()),
@@ -109,6 +112,7 @@ def get_hh_values(num_pages, text = 'Python'):
         'vacancy_dict': list(vacancy_dict.values()),
         'resume_dict': resume,
         'applicant_dict': applicant,
+        'vacancy_resume_list': vacancy_resume_list,
     }
 
 

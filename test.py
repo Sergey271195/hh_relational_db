@@ -2,8 +2,12 @@ from sql_gen import create_table, insert_into
 from client import get_hh_values
 
 SCHEMA = 'homework'
+dicts = get_hh_values(25, 'python')
 
-with open('test.sql', 'w') as f:
+with open('test3.sql', 'w', encoding = 'utf-16') as f:
+
+    f.write(f'DROP SCHEMA {SCHEMA} CASCADE;\n')
+    f.write(f'CREATE SCHEMA {SCHEMA};\n')
 
     create_table(
         schema = SCHEMA,
@@ -36,8 +40,6 @@ with open('test.sql', 'w') as f:
             'compensation_to': 'integer',
             'compensation_gross': 'boolean',
             'created_at': 'timestamp DEFAULT now()',
-            'responses': 'integer DEFAULT 0',
-            'first_response_at': 'timestamp',
         }
     )
 
@@ -76,10 +78,6 @@ with open('test.sql', 'w') as f:
         constraints = ['CONSTRAINT unique_relations UNIQUE(vacancy_id, resume_id)'],
     )
 
-dicts = get_hh_values(25, 'python')
-
-with open('test2.sql', 'w', encoding = 'utf-16') as f:
-
     insert_into(
         output = f,
         table_name = 'area',
@@ -113,5 +111,13 @@ with open('test2.sql', 'w', encoding = 'utf-16') as f:
         output = f,
         table_name = 'resume',
         values = dicts.get('resume_dict'),
+        schema = SCHEMA,
+    )
+
+    insert_into(
+        output = f,
+        table_name = 'vacancy_resume',
+        fields = ['vacancy_id', 'resume_id', 'created_at'],
+        values = dicts.get('vacancy_resume_list'),
         schema = SCHEMA,
     )
