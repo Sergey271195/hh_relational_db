@@ -1427,12 +1427,23 @@ SELECT
     percentile_cont(0.5) WITHIN GROUP (ORDER BY vac_count) as median_value
 FROM vac_number;
 
+WITH creation_times AS (
+    SELECT
+        a.area_name,
+        v.created_at AS vacancy_creation,
+        vr.created_at AS first_response
+    FROM homework.vacancy AS v
+    LEFT JOIN homework.vacancy_resume as vr ON v.vacancy_id = vr.vacancy_id
+    LEFT JOIN homework.employer AS e ON e.employer_id = v.employer_id
+    LEFT JOIN homework.area AS a ON e.area_id = a.area_id
+)
 SELECT
     area_name,
-    min(first_response_at - created_at) AS min_time,
-    max(first_response_at - created_at) AS max_time
-FROM homework.vacancy AS v
-LEFT JOIN homework.employer AS e ON v.employer_id = e.employer_id
-LEFT JOIN homework.area AS a ON e.area_id = a.area_id
+    min(first_response - vacancy_creation) AS min_time,
+    max(first_response - vacancy_creation) AS max_time
+FROM creation_times
 GROUP BY area_name ORDER BY area_name;
+
+
+
 
